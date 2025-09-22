@@ -11,49 +11,67 @@ import { setTasks } from "./src/redux/taskSlice";
 import LoginScreen from "./src/screens/LoginScreen";
 import TaskScreen from "./src/screens/TaskScreen";
 
-const Stack = createNativeStackNavigator();
-export default function App(){
-  const [loading, setLoading]=useState(true);
-  const [isLoggedIn, setIsLoggedIn]= useState(false);
-  useEffect(()=>{
-    (async ()=>{
+export type RootStackParamList = {
+  Login: undefined;
+  Task: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+export default function App() {
+  const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      // lấy session user
       const user = await getData("USER_SESSION");
       setIsLoggedIn(!!(user && user.isLoggedIn));
 
-      const savedTasks=await getData("STASKS");
-      if (savedTasks){
-        store.dispatch(SetTasks(savedTasks));
+      // load tasks từ storage
+      const savedTasks = await getData("TASKS");
+      if (savedTasks) {
+        store.dispatch(setTasks(savedTasks));
       }
-      let prev = store.getState().tasks.tasks;
-      store.subscribe(() =>{
+
+      // đồng bộ redux -> storage
+      let prev = store.getState().stasks.tasks;
+      store.subscribe(() => {
         const current = store.getState().stasks.tasks;
-        if (prev !== current){
-          saveData("TASKS",current);
+        if (prev !== current) {
+          saveData("TASKS", current);
           prev = current;
         }
       });
+
       setLoading(false);
     })();
-  },[]);
-  if(loading){
-    return(
-      <View style={{flex:1,justifyContent:"center",alignItems:"center"}}>
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" />
       </View>
     );
   }
-  return(
+
+  return (
     <Provider store={store}>
       <ThemeProvider>
         <NavigationContainer>
-          <Stack.Navigator screenOptions={{HeaderShown:false}}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
             {!isLoggedIn ? (
               <Stack.Screen name="Login">
-                {props =><LoginScreen{...props} onLogin={()=>setIsLoggedIn(true)} />}
+                {(props) => (
+                  <LoginScreen {...props} onLogin={() => setIsLoggedIn(true)} />
+                )}
               </Stack.Screen>
-            ):(
+            ) : (
               <Stack.Screen name="Task">
-                {props => <TaskScreen {...props} onLogout={() => setIsLoggedIn(false)} />}
+                {(props) => (
+                  <TaskScreen {...props} onLogout={() => setIsLoggedIn(false)} />
+                )}
               </Stack.Screen>
             )}
           </Stack.Navigator>
